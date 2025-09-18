@@ -14,6 +14,31 @@ let offices = [{
 }];
 let activeOfficeId = 1;
 
+// --- STORAGE HELPERS (ADDED) ---
+function saveData() {
+    try {
+        localStorage.setItem('officesData', JSON.stringify(offices));
+        localStorage.setItem('activeOfficeId', String(activeOfficeId));
+    } catch (err) {
+        console.warn('Failed to save data to localStorage:', err);
+    }
+}
+
+function loadData() {
+    try {
+        const saved = localStorage.getItem('officesData');
+        const savedActive = localStorage.getItem('activeOfficeId');
+        if (saved) {
+            offices = JSON.parse(saved);
+            if (savedActive) activeOfficeId = parseInt(savedActive, 10);
+            return true;
+        }
+    } catch (err) {
+        console.warn('Failed to load data from localStorage:', err);
+    }
+    return false;
+}
+
 // --- INITIALIZATION ---
 function initializeWithSampleData() {
     const office = offices[0];
@@ -30,6 +55,8 @@ function initializeWithSampleData() {
 
     renderAll();
     renderTabs();
+    // Persist the initial sample so next reload uses it unless user-data exists
+    saveData();
 }
 
 // --- THEME ---
@@ -112,7 +139,15 @@ function renderGeneric(type, items, containerId, buttonText) {
             const portDiv = document.createElement('div');
             portDiv.className = 'rj45-port';
             portDiv.innerHTML = `<span class="port-number">${port.portId}</span><div class="port-light ${port.status === 'active' ? 'active' : ''}"></div>`;
-            portDiv.onclick = (e) => { e.stopPropagation(); showPortDetailsPopup(e, type, item.itemId, port.portId); };
+
+            // Hover instead of click
+            portDiv.addEventListener('mouseenter', (e) => {
+                showPortDetailsPopup(e, type, item.itemId, port.portId);
+            });
+            portDiv.addEventListener('mouseleave', () => {
+                closePopup();
+            });
+
             grid.appendChild(portDiv);
         });
         itemDiv.appendChild(grid);
@@ -134,6 +169,7 @@ function createSwitch(portCount) {
     };
     
     office.switches.push(newSwitch);
+    saveData(); // persist change
     renderAll();
     hideSwitchModal();
 }
@@ -150,6 +186,7 @@ function addPanel() {
         newPanel.ports.push({ portId: i, user: '', department: '', pcname: '', location: '', status: 'inactive', remarks: '' });
     }
     office.patchPanels.push(newPanel);
+    saveData(); // persist change
     renderAll();
 }
 
@@ -161,6 +198,7 @@ function addRouter() {
         newRouter.ports.push({ portId: i, interface: `Gi0/${i-1}`, ipAddress: '', subnet: '', status: 'inactive', remarks: '' });
     }
     office.routers.push(newRouter);
+    saveData(); // persist change
     renderAll();
 }
 
@@ -188,9 +226,10 @@ function confirmDelete() {
 
         // Switch to first office if deleted active one
         if (activeOfficeId === itemId && offices.length > 0) {
-        activeOfficeId = offices[0].id;
+            activeOfficeId = offices[0].id;
         }
 
+        saveData(); // persist change
         renderAll();
         renderTabs();
         closeDeleteModal();
@@ -206,6 +245,7 @@ function confirmDelete() {
         closeSidebar();
     }
 
+    saveData(); // persist change
     renderAll();
     closeDeleteModal();
 }
@@ -222,6 +262,7 @@ function updateItemName(type, itemId, newName) {
     };
     const item = getActiveOffice()[type].find(i => i.itemId === itemId);
     if (item) item.name = newName.trim();
+    saveData(); // persist change
 }
 
 function updateData(type, itemId, portId, field, newValue) {
@@ -230,6 +271,7 @@ function updateData(type, itemId, portId, field, newValue) {
         const port = item.ports.find(p => p.portId == portId);
         if (port) port[field] = newValue;
     }
+    saveData(); // persist change
 }
 
 function toggleStatus(type, itemId, portId) {
@@ -239,6 +281,7 @@ function toggleStatus(type, itemId, portId) {
         renderAll(); 
         openSidebar(type, itemId); 
     }
+    saveData(); // persist change
 }
 
 // --- TABS & SIDEBAR ---
@@ -273,6 +316,7 @@ function renderTabs() {
             } else {
                 titleInput.value = office.name;
             }
+            saveData(); // persist change
         };
 
         titleInput.addEventListener('blur', saveName);
@@ -311,6 +355,7 @@ function renderTabs() {
 
 function switchOffice(id) { 
     activeOfficeId = id; 
+    saveData(); // persist selected office
     renderAll(); 
     renderTabs(); 
     closeSidebar(); 
@@ -327,6 +372,7 @@ function addOfficeTab() {
     };
     
     offices.push(newOffice);
+    saveData(); // persist new office
     switchOffice(nextId);
 }
 
@@ -448,8 +494,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('theme') || 'light';
     applyTheme(savedTheme);
     
-    // Data initialization
-    initializeWithSampleData();
+    // Data initialization: load from localStorage if present, otherwise use sample data
+    if (!loadData()) {
+        initializeWithSampleData();
+    } else {
+        renderAll();
+        renderTabs();
+    }
 
     // Modal event listeners
     document.getElementById('modal-create-16').addEventListener('click', () => createSwitch(16));
