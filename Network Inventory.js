@@ -169,7 +169,7 @@ function createSwitch(portCount) {
     };
     
     office.switches.push(newSwitch);
-    saveData(); // persist change
+    saveData(); 
     renderAll();
     hideSwitchModal();
 }
@@ -186,7 +186,7 @@ function addPanel() {
         newPanel.ports.push({ portId: i, user: '', department: '', pcname: '', location: '', status: 'inactive', remarks: '' });
     }
     office.patchPanels.push(newPanel);
-    saveData(); // persist change
+    saveData();
     renderAll();
 }
 
@@ -198,7 +198,7 @@ function addRouter() {
         newRouter.ports.push({ portId: i, interface: `Gi0/${i-1}`, ipAddress: '', subnet: '', status: 'inactive', remarks: '' });
     }
     office.routers.push(newRouter);
-    saveData(); // persist change
+    saveData(); 
     renderAll();
 }
 
@@ -206,12 +206,10 @@ let pendingDelete = { type: null, itemId: null };
 
 function deleteItem(type, itemId) {
     if (type === 'offices' && offices.length === 1) {
-        // Show warning modal instead of deleting
         document.getElementById('last-office-modal').classList.add('visible');
         return;
     }
 
-    // Store what to delete and show delete confirmation modal
     pendingDelete = { type, itemId };
     document.getElementById('delete-confirm-modal').classList.add('visible');
 }
@@ -224,19 +222,17 @@ function confirmDelete() {
     if (type === 'offices') {
         offices = offices.filter(o => o.id !== itemId);
 
-        // Switch to first office if deleted active one
         if (activeOfficeId === itemId && offices.length > 0) {
             activeOfficeId = offices[0].id;
         }
 
-        saveData(); // persist change
+        saveData(); 
         renderAll();
         renderTabs();
         closeDeleteModal();
         return;
     }
 
-    // Existing logic for switches, panels, routers...
     const office = getActiveOffice();
     office[type] = office[type].filter(item => item.itemId !== itemId);
     
@@ -245,7 +241,7 @@ function confirmDelete() {
         closeSidebar();
     }
 
-    saveData(); // persist change
+    saveData(); 
     renderAll();
     closeDeleteModal();
 }
@@ -257,12 +253,12 @@ function closeDeleteModal() {
 
 function updateItemName(type, itemId, newName) {
     if (!newName.trim()) {
-        renderAll(); // Re-render to restore original name if input is empty
+        renderAll(); 
         return;
     };
     const item = getActiveOffice()[type].find(i => i.itemId === itemId);
     if (item) item.name = newName.trim();
-    saveData(); // persist change
+    saveData(); 
 }
 
 function updateData(type, itemId, portId, field, newValue) {
@@ -271,7 +267,7 @@ function updateData(type, itemId, portId, field, newValue) {
         const port = item.ports.find(p => p.portId == portId);
         if (port) port[field] = newValue;
     }
-    saveData(); // persist change
+    saveData(); 
 }
 
 function toggleStatus(type, itemId, portId) {
@@ -281,7 +277,7 @@ function toggleStatus(type, itemId, portId) {
         renderAll(); 
         openSidebar(type, itemId); 
     }
-    saveData(); // persist change
+    saveData();
 }
 
 // --- TABS & SIDEBAR ---
@@ -316,7 +312,7 @@ function renderTabs() {
             } else {
                 titleInput.value = office.name;
             }
-            saveData(); // persist change
+            saveData();
         };
 
         titleInput.addEventListener('blur', saveName);
@@ -355,7 +351,7 @@ function renderTabs() {
 
 function switchOffice(id) { 
     activeOfficeId = id; 
-    saveData(); // persist selected office
+    saveData();
     renderAll(); 
     renderTabs(); 
     closeSidebar(); 
@@ -372,7 +368,7 @@ function addOfficeTab() {
     };
     
     offices.push(newOffice);
-    saveData(); // persist new office
+    saveData(); 
     switchOffice(nextId);
 }
 
@@ -490,11 +486,9 @@ function showPortDetailsPopup(e, type, itemId, portId) {
 
 // --- LIFECYCLE ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Theme initialization
     const savedTheme = localStorage.getItem('theme') || 'light';
     applyTheme(savedTheme);
     
-    // Data initialization: load from localStorage if present, otherwise use sample data
     if (!loadData()) {
         initializeWithSampleData();
     } else {
